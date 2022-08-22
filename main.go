@@ -38,6 +38,7 @@ func main() {
 	godotenv.Load()
 	port := os.Getenv("PORT")
 	mode := os.Getenv("ENVIRONMENT")
+	hostname := os.Getenv("HOSTNAME")
 
 	if err != nil {
 		log.Fatal("error trying to get hostname", err)
@@ -78,7 +79,7 @@ func main() {
 	docs.SwaggerInfo.Title = "Golang REST API"
 	docs.SwaggerInfo.Description = "My first rest api with mongodb and Golang."
 	docs.SwaggerInfo.Version = "1.0"
-	docs.SwaggerInfo.Host ="localhost:" + port
+	docs.SwaggerInfo.Host = strings.ToLower(hostname) + ":" + port
 	docs.SwaggerInfo.BasePath = "/api/v1"
 	docs.SwaggerInfo.Schemes = []string{"http", "https"}
 
@@ -95,7 +96,7 @@ func main() {
 
 	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
-	fmt.Println("http://localhost:" + port + "/swagger/index.html")
+	fmt.Println("http://" + strings.ToLower(hostname) + ":" + port + "/swagger/index.html")
 
 	log.Fatal(server.Run(":" + port))
 
