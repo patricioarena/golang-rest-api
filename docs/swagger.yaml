@@ -1,0 +1,87 @@
+definitions:
+  models.Game:
+    properties:
+      _id:
+        type: string
+      discount:
+        type: string
+      img:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+      price_with_discounted:
+        type: string
+      price_without_discounted:
+        type: string
+    type: object
+info:
+  contact:
+    email: patricio.e.arena@gmail.com
+    name: LinkedIn
+    url: https://www.linkedin.com/in/patricio-ernesto-antonio-arena-08a0a9133/
+paths:
+  /game/all:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all games
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Game'
+            type: array
+      summary: List games
+      tags:
+      - Game
+  /game/all/order-by-discount:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all games order by discount
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Game'
+            type: array
+      summary: List games order by discount
+      tags:
+      - Game
+  /game/page/:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all games with pagination
+      parameters:
+      - description: Page number
+        in: query
+        name: number
+        required: true
+        type: integer
+      - description: Limit results
+        in: query
+        name: limit
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Game'
+            type: array
+      summary: List games with pagination
+      tags:
+      - Game
+swagger: "2.0"

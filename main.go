@@ -1,64 +1,103 @@
 package main
 
 import (
-    "context"
-    "fmt"
-    "log"
-    "os"
+	"context"
+	"fmt"
+	"log"
+	"os"
+	"strings"
 
-    "github.com/gin-gonic/gin"
-    "github.com/joho/godotenv"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
-    "go.mongodb.org/mongo-driver/mongo/readpref"
-    "patricioa.e.arena/rest-api/controllers"
-    "patricioa.e.arena/rest-api/services"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"patricioa.e.arena/rest-api/controllers"
+	docs "patricioa.e.arena/rest-api/docs"
+	"patricioa.e.arena/rest-api/services"
 )
 
 var (
-    server         *gin.Engine
-    gameService    services.GameService
-    gameController controllers.GameController
-    ctx            context.Context
-    scrapedData    *mongo.Database
-    gameCollection *mongo.Collection
-    mongoclient    *mongo.Client
-    err            error
+	server         *gin.Engine
+	scrapingService    services.ScrapingService
+	scrapingController controllers.ScrapingController
+	ctx            context.Context
+	scrapedData    *mongo.Database
+	gameCollection *mongo.Collection
+	mongoclient    *mongo.Client
+	err            error
 )
 
-func init() {
-    godotenv.Load()
-    ctx = context.TODO()
-    mongoconn := options.Client().ApplyURI(os.Getenv("CONNECTION_STRING"))
-    mongoclient, err = mongo.Connect(ctx, mongoconn)
-
-    if err != nil {
-        log.Fatal("error while connecting with mongo", err)
-    }
-
-    err = mongoclient.Ping(ctx, readpref.Primary())
-    if err != nil {
-        log.Fatal("error while trying to ping mongo", err)
-    }
-
-    fmt.Println("mongo connection established")
-
-    scrapedData = mongoclient.Database("ScrapedData")
-    gameCollection = scrapedData.Collection("2022-08-13T06:49:18.829845")
-    gameService = services.NewGameService(gameCollection, ctx)
-    gameController = controllers.NewGameController(gameService)
-    server = gin.Default()
-}
-
+// @contact.name   LinkedIn
+// @contact.url    https://www.linkedin.com/in/patricio-ernesto-antonio-arena-08a0a9133/
+// @contact.email  patricio.e.arena@gmail.com
 func main() {
-    godotenv.Load()
+	godotenv.Load()
+	port := os.Getenv("PORT")
+	mode := os.Getenv("ENVIRONMENT")
+	hostname, err := os.Hostname()
 
-    defer mongoclient.Disconnect(ctx)
+	if err != nil {
+		log.Fatal("error trying to get hostname", err)
+	}
 
-    basepath := server.Group("/v1")
+	ctx = context.TODO()
+	mongoconn := options.Client().ApplyURI(os.Getenv("CONNECTION_STRING"))
+	mongoclient, err = mongo.Connect(ctx, mongoconn)
 
-    gameController.RegisterGameRoutes(basepath)
-    log.Fatal(server.Run(":" + os.Getenv("PORT")))
+	if err != nil {
+		log.Fatal("error while connecting with mongo", err)
+	}
 
-    fmt.Println("mongo connection")
+	err = mongoclient.Ping(ctx, readpref.Primary())
+	if err != nil {
+		log.Fatal("error while trying to ping mongo", err)
+	}
+
+	fmt.Println("mongo connection established")
+
+	scrapedData = mongoclient.Database("ScrapedData")
+	collectionNames, err := scrapedData.ListCollectionNames(ctx, bson.D{{}})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gameCollection = scrapedData.Collection(collectionNames[0])
+	scrapingService = services.NewScrapingService(gameCollection, ctx)
+	scrapingController = controllers.NewScrapingController(scrapingService)
+
+	defer mongoclient.Disconnect(ctx)
+
+	gin.SetMode(strings.ToLower(mode))
+	server = gin.New()
+
+	// Swagger 2.0 Meta Information
+	docs.SwaggerInfo.Title = "Golang REST API"
+	docs.SwaggerInfo.Description = "My first rest api with mongodb and Golang."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = hostname + ":" + port
+	docs.SwaggerInfo.BasePath = "/api/v1"
+	docs.SwaggerInfo.Schemes = []string{"http", "https"}
+
+	apiRoutes := server.Group(docs.SwaggerInfo.BasePath)
+	{
+		games := apiRoutes.Group("game")
+		{
+			games.GET("/all", scrapingController.GetAll)
+			games.GET("/all/order-by-discount", scrapingController.GetAllPerDiscount)
+			games.GET("/page", scrapingController.GetPage)
+
+		}
+	}
+
+	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
+	fmt.Println("http://" + hostname + ":" + port + "/swagger/index.html")
+
+	log.Fatal(server.Run(":" + port))
+
 }
