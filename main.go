@@ -79,7 +79,7 @@ func main() {
 	docs.SwaggerInfo.Title = "Golang REST API"
 	docs.SwaggerInfo.Description = "My first rest api with mongodb and Golang."
 	docs.SwaggerInfo.Version = "1.0"
-	docs.SwaggerInfo.Host = strings.ToLower(hostname) + port
+	docs.SwaggerInfo.Host = strings.ToLower(hostname) + ":" + port
 	docs.SwaggerInfo.BasePath = "/api/v1"
 	docs.SwaggerInfo.Schemes = []string{"http", "https"}
 
@@ -96,8 +96,8 @@ func main() {
 
 	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
-	fmt.Println("http://" + strings.ToLower(hostname) + port + "/swagger/index.html")
+	fmt.Println("http://" + strings.ToLower(hostname) + ":" + port + "/swagger/index.html")
 
-	log.Fatal(server.Run(port))
+	log.Fatal(server.Run(":" + port))
 
 }
