@@ -64,6 +64,11 @@ func (gc *ScrapingController) GetPage(ctx *gin.Context) {
     _limit := ctx.Query("limit")
 
     limit, err := strconv.Atoi(_limit)
+	if err != nil {
+        ctx.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+		return
+    }
+
 	number, err := strconv.Atoi(_number)
 	if err != nil {
         ctx.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
